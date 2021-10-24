@@ -3,7 +3,7 @@
 
 void mpi_check(int mpi_type) {
     if (mpi_type != MPI_SUCCESS) {
-        printf("Erorr in MPI");
+        printf("Erorr in MPI\n");
         MPI_Abort(MPI_COMM_WORLD, mpi_type);
     }
 }
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
         printf("First rank. Message: %d. Send to %d from 0\n", message, rank + 1);
 
         mpi_check(MPI_Recv(&message, 1, MPI_INT, size - 1, 1, MPI_COMM_WORLD, &st));
-        printf("Result: %d. From %d", message, size - 1);
+        printf("Result: %d. From %d\n", message, size - 1);
     }
     else if (rank != size - 1) {
         mpi_check(MPI_Recv(&message, 1, MPI_INT, rank - 1, 1, MPI_COMM_WORLD, &st));
