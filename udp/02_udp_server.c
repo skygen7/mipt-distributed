@@ -34,36 +34,36 @@ int main()
 
     while(1) {
         clilen = sizeof(cliaddr);
-        bzero(arr, 3);
-        if ((n = recvfrom(sockfd, arr, 3 * sizeof(int), 0, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
+
+        // get N, ibeg, iend from client
+        if ((n = recvfrom(sockfd, &arr, 3 * sizeof(int), 0, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
             printf("Can\'t receive answer, errno = %d\n", errno);
             close(sockfd);
             exit(1);
         }
         printf("Receive from client: [N: %d, ibeg: %d, iend: %d]\n", arr[0], arr[1], arr[2]);
 
+        // Calculate trapezium square
         double x, next_x, square, result = 0.0;
-
         int N = arr[0];
         int ibeg = arr[1];
         int iend = arr[2];
-//        printf("lol: [N: %d, ibeg: %d, iend: %d]\\n", N, ibeg, iend);
-
         double h = 2.0 / N;
-        for (int i = ibeg; i < iend; i++) {
+
+        for (int i = ibeg; i <= iend; i++) {
             x = h * i;
             next_x = h * (i + 1);
             square = (h * (sqrt(4 - pow(x, 2)) + sqrt(4 - pow(next_x, 2)))) / 2;
             result += square;
         }
 
-        if(sendto(sockfd, (char*)&result, sizeof(double), 0, (struct sockaddr *) &servaddr, sizeof(servaddr)) < 0) {
+        // send square to client
+        if(sendto(sockfd, &result, sizeof(double), 0, (struct sockaddr *) &cliaddr, clilen) < 0) {
             printf("Can\'t send answer, errno = %d\n", errno);
             close(sockfd);
             exit(1);
         }
-        printf("Result: %f. Sending...\n", result);
-//        printf("from %s %i\n",inet_ntoa(cliaddr.sin_addr),arr[0]);
+        printf("Square: %f. Sending to %s\n", result, inet_ntoa(cliaddr.sin_addr));
     }
     return 0;
 }

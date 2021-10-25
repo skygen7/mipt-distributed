@@ -77,16 +77,16 @@ int main(int argc, char **argv)
             close(sockfd);
             exit(1);
         }
-        printf("Send to server: [N: %d, ibeg: %d, iend: %d]\n", N, ibeg, iend);
-        if((n = recvfrom(sockfd, (char*)&answer, sizeof (double), 0, (struct sockaddr *) NULL, NULL)) < 0){
-
+        printf("Step %d. Send to server: [N: %d, ibeg: %d, iend: %d]\n", i, N, ibeg, iend);
+        if((n = recvfrom(sockfd, &answer, sizeof (double), 0, (struct sockaddr *) NULL, NULL)) < 0){
             printf("Can\'t receive answer, errno = %d\n", errno);
             close(sockfd);
             exit(1);
         }
+        printf("Receive from server square: %f\n", answer);
         res += answer;
     }
-    printf("Result: %lf", res);
+    printf("Result: %lf\n", res);
     close(sockfd);
     return 0;
 }
