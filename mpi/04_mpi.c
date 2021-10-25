@@ -30,6 +30,9 @@ int main(int argc, char *argv[]) {
     mpi_check(MPI_Comm_size(MPI_COMM_WORLD, &size));
 
     mpi_check(MPI_Comm_rank(MPI_COMM_WORLD, &rank));
+
+    mpi_check(MPI_Barrier(MPI_COMM_WORLD));
+
     if (rank == 0) {
         // Считываем N из файла
         const char filename[BUFSIZ] = "N.dat";
@@ -43,30 +46,26 @@ int main(int argc, char *argv[]) {
         fclose(fp);
 
         // Отправляем N остальным процессам
-        for (int i = 1; i < size; i++) {
-            mpi_check(MPI_Send(&N, 1, MPI_INT, i, 1, MPI_COMM_WORLD));
-            printf("Send N = %d to: %d\n", N, i);
-        }
+        mpi_check(MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD));
 
         // Считаем сумму площадей трапеций нулевого
         double result = 0.0;
         int rankbeg = 0;
         int rankend = (rank + 1) * N / size - 1;
-        result = square(N, rankbeg, rankend);
 
         // Принимаем сумму площадей трапеций от остальных
         double sumrank;
-        for (int i = 1; i < size; i++) {
-            mpi_check(MPI_Recv(&sumrank, 1, MPI_DOUBLE, i, 1, MPI_COMM_WORLD, &st));
-            result += sumrank;
-        }
-
+        mpi_check(MPI_Reduce(&sumrank, &result, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD));
+        // Прибавляем нулевую площадь
+        result += square(N, rankbeg, rankend);
         // Окончательный результат
         printf("Result: %f\n", result);
     } else {
         // прием N от нулевого
         int N;
-        mpi_check(MPI_Recv(&N, 1, MPI_INT, 0, 1, MPI_COMM_WORLD, &st));
+
+        mpi_check(MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD));
+
         int rankbeg = rank * N / size;
         int rankend;
 
@@ -79,7 +78,7 @@ int main(int argc, char *argv[]) {
 
         // вычисляем сумму трапеций от rankbeg до rankend и отправляем 0
         double sumrank = square(N, rankbeg, rankend);
-        mpi_check(MPI_Send(&sumrank, 1, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD));
+        mpi_check(MPI_Reduce(&sumrank, &sumrank, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD));
         printf("Sumrank: %f. Send to 0 from %d\n", sumrank, rank);
     }
 
