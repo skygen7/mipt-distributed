@@ -5,7 +5,7 @@
 
 void mpi_check(int mpi_type) {
     if (mpi_type != MPI_SUCCESS) {
-        printf("Erorr in MPI\n");
+        printf("Error in MPI\n");
         MPI_Abort(MPI_COMM_WORLD, mpi_type);
     }
 }
