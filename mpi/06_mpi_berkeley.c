@@ -28,22 +28,29 @@ int main(int argc, char *argv[]) {
         // server time
         long int server_time = rand()%15;
         printf("Start server time: %li\n", server_time);
+
+        // send server time to clients
+        for (int i = 1; i < size; i++) {
+            mpi_check(MPI_Send(&server_time, 1, MPI_LONG_INT, i, 1, MPI_COMM_WORLD));
+        }
+
         // arrays for client ranks and diff time
         int ranks[size - 1];
         long int diffs[size - 1];
-        double sum = server_time;
+        double sum = 0;
+        long int diff;
 
-        // receive and save client time
+        // receive and save client diff time
         for (int i = 0; i < size - 1; i++) {
-            mpi_check(MPI_Recv(&client_time, 1, MPI_LONG_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &st));
+            mpi_check(MPI_Recv(&diff, 1, MPI_LONG_INT, MPI_ANY_SOURCE, 1, MPI_COMM_WORLD, &st));
             ranks[i] = st.MPI_SOURCE;
-            diffs[i] = client_time - server_time;
-            sum += diffs[i];
-            printf("Receive from: %d. Time: %li\n", st.MPI_SOURCE, client_time);
+            diffs[i] = diff;
+            sum += diff;
+            printf("Receive from: %d. Diff time: %li\n", st.MPI_SOURCE, diff);
         }
 
         printf("Sum time: %f\n", sum);
-        long int mean = round(sum / size);
+        long int mean = lround(sum / size);
         printf("Mean time: %li\n", mean);
         long int adjustment;
 
@@ -56,9 +63,15 @@ int main(int argc, char *argv[]) {
 
         printf("Rank 0. Corrected time: %li\n", server_time + mean);
     } else {
-        // send current time to server
+        long int server_time;
+        // receive server time
+        mpi_check(MPI_Recv(&server_time, 1, MPI_LONG_INT, 0, 1, MPI_COMM_WORLD, &st));
+
         client_time = rand()%15;
-        mpi_check(MPI_Send(&client_time, 1, MPI_LONG_INT, 0, 1, MPI_COMM_WORLD));
+        printf("Rank: %d. Old time: %li\n", rank, client_time);
+        long int diff = client_time - server_time;
+        // send diff to server
+        mpi_check(MPI_Send(&diff, 1, MPI_LONG_INT, 0, 1, MPI_COMM_WORLD));
 
         long int adjustment;
 
