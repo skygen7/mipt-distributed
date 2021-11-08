@@ -41,12 +41,16 @@ int main(int argc, char *argv[]) {
 
     // create empty vector
     int *vector = malloc(size * sizeof(int));
+    // create receive vector
+    int *rvector = malloc(size * sizeof(int));
+
     int k = 0, time = 0;
     // create string vector for print
     char *svector = malloc(size * sizeof(char));
 
     for (int i = 0; i < size; i++) {
         vector[i] = 0;
+        rvector[i] = 0;
     }
 
     while (!feof(fp)) {
@@ -67,20 +71,34 @@ int main(int argc, char *argv[]) {
             svector = vec_to_str(svector, vector, size);
             printf("Send to: %d from %d. Vector time: %s\n", k - 1, rank, svector);
         } else {
-            mpi_check(MPI_Recv(vector, size, MPI_INT, abs(k) - 1, 0, MPI_COMM_WORLD, &st));
+            k  = abs(k);
+
+            mpi_check(MPI_Recv(rvector, size, MPI_INT, k - 1, 0, MPI_COMM_WORLD, &st));
 
             time += 1;
-            int message = vector[rank];
-            time = message > time ? message : time;
             vector[rank] = time;
 
             svector = vec_to_str(svector, vector, size);
-            printf("Rank: %d. Receive from %d. Corrected: %s\n", rank, abs(k) - 1, svector);
+            printf("Rank %d. Receive from %d. Before correction: %s\n", rank, k - 1, svector);
+
+            // do correction V[k] = max(V[k], Vmsg[k]) if k != rank
+            int correction;
+            for (int i = 0; i < size; i++) {
+                if (i == rank) {
+                    continue;
+                }
+                correction = vector[i] > rvector[i] ? vector[i] : rvector[i];
+                vector[i] = correction;
+            }
+
+            svector = vec_to_str(svector, vector, size);
+            printf("Rank: %d. Receive from %d. Corrected: %s\n", rank, k - 1, svector);
         }
     }
     fclose(fp);
     free(vector);
     free(svector);
+    free(rvector);
     MPI_Finalize();
     return 0;
 }
